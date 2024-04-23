@@ -1,0 +1,174 @@
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+class LaundryItem {
+    private int id;
+    private String name;
+    private double price;
+    private int quantity;
+
+    public LaundryItem(int id, String name, double price, int quantity) {
+        this.id = id;
+        this.name = name;
+        this.price = price;
+        this.quantity = quantity;
+    }
+
+    // Getters and setters
+    public int getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public double getPrice() {
+        return price;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public void setPrice(double price) {
+        this.price = price;
+    }
+
+    public void setQuantity(int quantity) {
+        this.quantity = quantity;
+    }
+}
+
+public class InventoryManagement {
+    private Connection connection;
+
+    public InventoryManagement() {
+        try {
+            String url = "jdbc:mysql://localhost:3306/your_database_name";
+            String username = "your_username";
+            String password = "your_password";
+            connection = DriverManager.getConnection(url, username, password);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void createItem(String name, double price, int quantity) {
+        String insertQuery = "INSERT INTO laundry_items (name, price, quantity) VALUES (?, ?, ?)";
+
+        try (PreparedStatement preparedStatement = connection.prepareStatement(insertQuery)) {
+            preparedStatement.setString(1, name);
+            preparedStatement.setDouble(2, price);
+            preparedStatement.setInt(3, quantity);
+            preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public LaundryItem readItem(int itemId) {
+        String selectQuery = "SELECT * FROM laundry_items WHERE id = ?";
+
+        try (PreparedStatement preparedStatement = connection.prepareStatement(selectQuery)) {
+            preparedStatement.setInt(1, itemId);
+            ResultSet resultSet = preparedStatement.executeQuery();
+
+            if (resultSet.next()) {
+                int id = resultSet.getInt("id");
+                String name = resultSet.getString("name");
+                double price = resultSet.getDouble("price");
+                int quantity = resultSet.getInt("quantity");
+                return new LaundryItem(id, name, price, quantity);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return null; // Item not found
+    }
+
+    public void updateItem(int itemId, double newPrice, int newQuantity) {
+        String updateQuery = "UPDATE laundry_items SET price = ?, quantity = ? WHERE id = ?";
+
+        try (PreparedStatement preparedStatement = connection.prepareStatement(updateQuery)) {
+            preparedStatement.setDouble(1, newPrice);
+            preparedStatement.setInt(2, newQuantity);
+            preparedStatement.setInt(3, itemId);
+            preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteItem(int itemId) {
+        String deleteQuery = "DELETE FROM laundry_items WHERE id = ?";
+
+        try (PreparedStatement preparedStatement = connection.prepareStatement(deleteQuery)) {
+            preparedStatement.setInt(1, itemId);
+            preparedStatement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public List<LaundryItem> getAllItems() {
+        List<LaundryItem> items = new ArrayList<>();
+        String selectAllQuery = "SELECT * FROM laundry_items";
+
+        try (PreparedStatement preparedStatement = connection.prepareStatement(selectAllQuery)) {
+            ResultSet resultSet = preparedStatement.executeQuery();
+
+            while (resultSet.next()) {
+                int id = resultSet.getInt("id");
+                String name = resultSet.getString("name");
+                double price = resultSet.getDouble("price");
+                int quantity = resultSet.getInt("quantity");
+                items.add(new LaundryItem(id, name, price, quantity));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return items;
+    }
+
+    public static void main(String[] args) {
+        InventoryManagement inventoryManagement = new InventoryManagement();
+
+        // Create a new laundry item
+        inventoryManagement.createItem("Shirt", 5.0, 100);
+
+        // Read item
+        LaundryItem item = inventoryManagement.readItem(1);
+        if (item != null) {
+            System.out.println("Item ID: " + item.getId());
+            System.out.println("Name: " + item.getName());
+            System.out.println("Price: $" + item.getPrice());
+            System.out.println("Quantity: " + item.getQuantity());
+        } else {
+            System.out.println("Item not found.");
+        }
+
+        // Update item
+        inventoryManagement.updateItem(1, 6.0, 120);
+
+        // Delete item
+        inventoryManagement.deleteItem(1);
+
+        // Get all items
+        List<LaundryItem> allItems = inventoryManagement.getAllItems();
+        System.out.println("All Items:");
+        for (LaundryItem i : allItems) {
+            System.out.println("Item ID: " + i.getId());
+            System.out.println("Name: " + i.getName());
+            System.out.println("Price: $" + i.getPrice());
+            System.out.println("Quantity: " + i.getQuantity());
+        }
+    }
+}
